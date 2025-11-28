@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Vánoční pohlednice – Editor</title>
+<style>
+  body {
+    font-family: sans-serif;
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  /* Panel vlevo */
+  #panel {
+    width: 160px;
+    padding-right: 10px;
+    border-right: 2px solid #ccc;
+  }
+
+  #panel h3 {
+    margin-top: 0;
+  }
+
+  #panel img {
+    width: 100%;
+    margin-bottom: 15px;
+    cursor: grab;
+  }
+
+  /* Rámeček pohlednice */
+  #canvas {
+    width: 600px;
+    height: 400px;
+    border: 3px solid #444;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+
+    background-image: url("muzeum_pozadí.jpg");
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* Prvky na plátně */
+  .item {
+    position: absolute;
+    width: 120px;
+    cursor: grab;
+    user-select: none;
+  }
+
+  #save {
+    margin-top: 25px;
+    padding: 10px 15px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- Postranní panel -->
+<div id="panel">
+  <h3>Vánoční postavy</h3>
+
+  <img src="Barborka.png" draggable="true" class="draggable">
+  <img src="Ambrož.png" draggable="true" class="draggable">
+  <img src="Mikuláš.png" draggable="true" class="draggable">
+  <img src="Perchta.png" draggable="true" class="draggable">
+  <img src="Žber.png" draggable="true" class="draggable">
+
+
+  <button id="save">📥 Stáhnout pohlednici</button>
+</div>
+
+<!-- Plátno -->
+<div id="canvas"></div>
+
+<!-- Knihovny -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.11/interact.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+// Drag & Drop z panelu
+document.querySelectorAll(".draggable").forEach(img => {
+  img.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("src", e.target.src);
+  });
+});
+
+const canvas = document.getElementById("canvas");
+canvas.addEventListener("dragover", e => e.preventDefault());
+canvas.addEventListener("drop", e => {
+  e.preventDefault();
+  const src = e.dataTransfer.getData("src");
+
+  const el = document.createElement("img");
+  el.src = src;
+  el.classList.add("item");
+  el.style.left = e.offsetX + "px";
+  el.style.top = e.offsetY + "px";
+
+  canvas.appendChild(el);
+  initInteractions(el);
+});
+
+// Pohyb a změna velikosti pomocí interact.js
+function initInteractions(el) {
+  interact(el)
+    .draggable({
+      listeners: {
+        move(event) {
+          const x = (parseFloat(el.getAttribute('data-x')) || 0) + event.dx;
+          const y = (parseFloat(el.getAttribute('data-y')) || 0) + event.dy;
+
+          el.style.transform = `translate(${x}px, ${y}px)`;
+          el.setAttribute('data-x', x);
+          el.setAttribute('data-y', y);
+        }
+      }
+    })
+    .resizable({
+      edges: { left: true, right: true, bottom: true, top: true }
+    })
+    .on('resizemove', event => {
+      let { x, y } = event.target.dataset;
+
+      event.target.style.width = event.rect.width + 'px';
+      event.target.style.height = event.rect.height + 'px';
+
+      x = (parseFloat(x) || 0) + event.deltaRect.left;
+      y = (parseFloat(y) || 0) + event.deltaRect.top;
+
+      event.target.style.transform = `translate(${x}px, ${y}px)`;
+
+      event.target.dataset.x = x;
+      event.target.dataset.y = y;
+    });
+}
+
+// Export pohlednice
+document.getElementById("save").addEventListener("click", () => {
+  html2canvas(canvas).then(canvasImg => {
+    const link = document.createElement("a");
+    link.download = "vanoční_pohlednice.png";
+    link.href = canvasImg.toDataURL("image/png");
+    link.click();
+  });
+});
+</script>
+
+</body>
+</html>
