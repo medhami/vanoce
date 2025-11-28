@@ -3,12 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>Vánoční pohlednice – Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
   body {
     font-family: sans-serif;
     display: flex;
     gap: 20px;
     padding: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   /* Panel vpravo */
@@ -16,33 +20,48 @@
     width: 160px;
     padding-right: 10px;
     border-right: 2px solid #ccc;
-
-    /* ↓ NOVÉ: panel je posuvný */
     max-height: 90vh;
     overflow-y: auto;
   }
 
   #panel h3 {
     margin-top: 0;
+    text-align: center;
   }
 
   #panel img {
     width: 100%;
     margin-bottom: 15px;
     cursor: grab;
-    touch-action: none; /* důležité pro mobily */
+    touch-action: none;
   }
 
-  /* Pohlednice vlevo */
+  /* Výrazný scroll */
+  #panel::-webkit-scrollbar {
+    width: 12px;
+  }
+  #panel::-webkit-scrollbar-track {
+    background: #e4e4e4;
+  }
+  #panel::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 6px;
+    border: 2px solid #e4e4e4;
+  }
+  #panel::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
+  /* Pohlednice – orientace NA VÝŠKU */
   #canvas {
-    width: 600px;
-    height: 400px;
+    width: 400px;
+    height: 600px;
     border: 3px solid #444;
     border-radius: 12px;
     position: relative;
     overflow: hidden;
 
-    background-image: url("muzeum_pozadi.jpg");
+    background-image: url("muzeum_pozadi.png");
     background-size: cover;
     background-position: center;
   }
@@ -50,7 +69,7 @@
   /* Prvky na plátně */
   .item {
     position: absolute;
-    width: 120px;
+    width: 140px;
     cursor: grab;
     user-select: none;
     touch-action: none;
@@ -60,6 +79,35 @@
     margin-top: 25px;
     padding: 10px 15px;
     cursor: pointer;
+    width: 100%;
+  }
+
+  /* -------------------------
+     Mobilní verze 
+  --------------------------*/
+  @media(max-width: 700px) {
+    body {
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+    }
+
+    #panel {
+      width: 90%;
+      max-height: 250px;
+      border-right: none;
+      border-bottom: 2px solid #ccc;
+      padding-bottom: 10px;
+    }
+
+    #canvas {
+      width: 350px;
+      height: 500px;
+    }
+
+    .item {
+      width: 120px;
+    }
   }
 </style>
 </head>
@@ -90,7 +138,7 @@ const canvas = document.getElementById("canvas");
 
 
 // -------------------------------
-// 1) DRAG & DROP FUNKCE NA PC
+// 1) DRAG & DROP pro PC
 // -------------------------------
 document.querySelectorAll(".draggable").forEach(img => {
   img.addEventListener("dragstart", e => {
@@ -108,7 +156,7 @@ canvas.addEventListener("drop", e => {
 
 
 // -------------------------------
-// 2) MOBILNÍ PŘETAŽENÍ (touch)
+// 2) MOBILNÍ DOTYKOVÉ PŘETAŽENÍ
 // -------------------------------
 let touchItem = null;
 
@@ -118,22 +166,22 @@ document.querySelectorAll(".draggable").forEach(img => {
     e.preventDefault();
     const touch = e.touches[0];
 
-    // vytvoříme dočasnou postavu, která se táhne
     touchItem = document.createElement("img");
     touchItem.src = img.src;
     touchItem.classList.add("item");
     touchItem.style.position = "fixed";
-    touchItem.style.width = "120px";
-    touchItem.style.left = (touch.clientX - 60) + "px";
-    touchItem.style.top = (touch.clientY - 60) + "px";
+    touchItem.style.width = "140px";
+    touchItem.style.left = (touch.clientX - 70) + "px";
+    touchItem.style.top = (touch.clientY - 70) + "px";
+
     document.body.appendChild(touchItem);
   });
 
   img.addEventListener("touchmove", e => {
     if (!touchItem) return;
     const touch = e.touches[0];
-    touchItem.style.left = (touch.clientX - 60) + "px";
-    touchItem.style.top = (touch.clientY - 60) + "px";
+    touchItem.style.left = (touch.clientX - 70) + "px";
+    touchItem.style.top = (touch.clientY - 70) + "px";
   });
 
   img.addEventListener("touchend", e => {
@@ -143,7 +191,6 @@ document.querySelectorAll(".draggable").forEach(img => {
     const x = parseInt(touchItem.style.left);
     const y = parseInt(touchItem.style.top);
 
-    // Pokud pustíme nad plátnem, vložíme postavu
     if (
       x > rect.left &&
       x < rect.right &&
@@ -164,7 +211,7 @@ document.querySelectorAll(".draggable").forEach(img => {
 
 
 // -------------------------------
-// Funkce pro vložení nové postavy na plátno
+// Funkce pro vložení nové postavy
 // -------------------------------
 function placeNewItem(src, x, y) {
   const el = document.createElement("img");
@@ -178,7 +225,7 @@ function placeNewItem(src, x, y) {
 
 
 // -------------------------------
-// Pohyb a změna velikosti
+// Interact.js – pohyb + resize
 // -------------------------------
 function initInteractions(el) {
   interact(el)
