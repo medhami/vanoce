@@ -11,11 +11,15 @@
     padding: 20px;
   }
 
-  /* Panel vlevo */
+  /* Panel vpravo */
   #panel {
     width: 160px;
     padding-right: 10px;
     border-right: 2px solid #ccc;
+
+    /* ↓ NOVÉ: panel je posuvný */
+    max-height: 90vh;
+    overflow-y: auto;
   }
 
   #panel h3 {
@@ -26,9 +30,10 @@
     width: 100%;
     margin-bottom: 15px;
     cursor: grab;
+    touch-action: none; /* důležité pro mobily */
   }
 
-  /* Rámeček pohlednice */
+  /* Pohlednice vlevo */
   #canvas {
     width: 600px;
     height: 400px;
@@ -37,7 +42,7 @@
     position: relative;
     overflow: hidden;
 
-    background-image: url("muzeum_pozadí.jpg");
+    background-image: url("muzeum_pozadi.jpg");
     background-size: cover;
     background-position: center;
   }
@@ -48,6 +53,7 @@
     width: 120px;
     cursor: grab;
     user-select: none;
+    touch-action: none;
   }
 
   #save {
@@ -59,7 +65,7 @@
 </head>
 <body>
 
-<!-- Postranní panel -->
+<!-- Panel -->
 <div id="panel">
   <h3>Vánoční postavy</h3>
 
@@ -68,7 +74,6 @@
   <img src="Mikuláš.png" draggable="true" class="draggable">
   <img src="Perchta.png" draggable="true" class="draggable">
   <img src="Žber.png" draggable="true" class="draggable">
-
 
   <button id="save">📥 Stáhnout pohlednici</button>
 </div>
@@ -81,30 +86,100 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
-// Drag & Drop z panelu
+const canvas = document.getElementById("canvas");
+
+
+// -------------------------------
+// 1) DRAG & DROP FUNKCE NA PC
+// -------------------------------
 document.querySelectorAll(".draggable").forEach(img => {
   img.addEventListener("dragstart", e => {
     e.dataTransfer.setData("src", e.target.src);
   });
 });
 
-const canvas = document.getElementById("canvas");
 canvas.addEventListener("dragover", e => e.preventDefault());
+
 canvas.addEventListener("drop", e => {
   e.preventDefault();
   const src = e.dataTransfer.getData("src");
+  placeNewItem(src, e.offsetX, e.offsetY);
+});
 
+
+// -------------------------------
+// 2) MOBILNÍ PŘETAŽENÍ (touch)
+// -------------------------------
+let touchItem = null;
+
+document.querySelectorAll(".draggable").forEach(img => {
+
+  img.addEventListener("touchstart", e => {
+    e.preventDefault();
+    const touch = e.touches[0];
+
+    // vytvoříme dočasnou postavu, která se táhne
+    touchItem = document.createElement("img");
+    touchItem.src = img.src;
+    touchItem.classList.add("item");
+    touchItem.style.position = "fixed";
+    touchItem.style.width = "120px";
+    touchItem.style.left = (touch.clientX - 60) + "px";
+    touchItem.style.top = (touch.clientY - 60) + "px";
+    document.body.appendChild(touchItem);
+  });
+
+  img.addEventListener("touchmove", e => {
+    if (!touchItem) return;
+    const touch = e.touches[0];
+    touchItem.style.left = (touch.clientX - 60) + "px";
+    touchItem.style.top = (touch.clientY - 60) + "px";
+  });
+
+  img.addEventListener("touchend", e => {
+    if (!touchItem) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = parseInt(touchItem.style.left);
+    const y = parseInt(touchItem.style.top);
+
+    // Pokud pustíme nad plátnem, vložíme postavu
+    if (
+      x > rect.left &&
+      x < rect.right &&
+      y > rect.top &&
+      y < rect.bottom
+    ) {
+      placeNewItem(
+        touchItem.src,
+        x - rect.left,
+        y - rect.top
+      );
+    }
+
+    touchItem.remove();
+    touchItem = null;
+  });
+});
+
+
+// -------------------------------
+// Funkce pro vložení nové postavy na plátno
+// -------------------------------
+function placeNewItem(src, x, y) {
   const el = document.createElement("img");
   el.src = src;
   el.classList.add("item");
-  el.style.left = e.offsetX + "px";
-  el.style.top = e.offsetY + "px";
-
+  el.style.left = x + "px";
+  el.style.top = y + "px";
   canvas.appendChild(el);
   initInteractions(el);
-});
+}
 
-// Pohyb a změna velikosti pomocí interact.js
+
+// -------------------------------
+// Pohyb a změna velikosti
+// -------------------------------
 function initInteractions(el) {
   interact(el)
     .draggable({
@@ -138,7 +213,10 @@ function initInteractions(el) {
     });
 }
 
-// Export pohlednice
+
+// -------------------------------
+// Uložení pohlednice jako PNG
+// -------------------------------
 document.getElementById("save").addEventListener("click", () => {
   html2canvas(canvas).then(canvasImg => {
     const link = document.createElement("a");
