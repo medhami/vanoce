@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Vánoční pohlednice – Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover">
+
+<style>
+  :root{
+    --palette-height: 22vh;
+    --gap: 12px;
+  }
+
+  html,body{height:100%;}
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f7f7f8;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .container{
+    width: 100%;
+    max-width: 1100px;
+    padding: 16px;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* Stage: hlavní plátno */
+  #canvas {
+    width: 100%;
+    aspect-ratio: 16/9; /* Přidá správný poměr rámečku k pozadí! */
+    border: 3px solid #444;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    background-image: url("muzeum_pozadi.png");
+    background-size: cover; /* Lepší pokrytí rámečku obrázkem */
+    background-position: center;
+    background-repeat: no-repeat;
+    margin: 0 auto;
+    box-sizing: border-box;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* Prvky které hráč vkládá */
+  .item {
+    position: absolute;
+    width: clamp(64px, 18vw, 140px);
+    cursor: grab;
+    user-select: none;
+    touch-action: none; /* zabrání scrollování při přetahování */
+    will-change: transform;
+  }
+
+  /* Panel s postavami */
+  #panel {
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  #panel h3{margin:0 0 8px 0;text-align:center}
+
+  /* Desktop - svislý panel */
+  .palette-list {
+    display:flex;
+    flex-direction:column;
+    gap: var(--gap);
+    max-height: 74vh;
+    overflow-y:auto;
+    padding-right:6px;
+    scrollbar-width:thin;
+    scrollbar-color:#888 #eee;
+  }
+  .palette-list img{
+    width:100%;
+    border-radius:8px;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+  }
+  .palette-list::-webkit-scrollbar {
+    width: 10px;
+    height: 16px;
+    background: #eee;
+  }
+  .palette-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 8px;
+  }
+  .palette-list::-webkit-scrollbar-track {
+    background: #eee;
+  }
+
+  #save{
+    margin-top: 12px;
+    padding: 10px 12px;
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  /* -------------------------
+     Mobilní verze – paleta dole
+  --------------------------*/
+  @media (max-width: 880px) {
+    .container{
+      grid-template-columns: 1fr;
+      padding-bottom: calc(var(--palette-height) + 20px);
+    }
+    .palette-list {
+      flex-direction:row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-height:none;
+      height: var(--palette-height);
+      padding-bottom: 18px; /* Rezerva pro posuvník */
+      gap: var(--gap);
+      margin-bottom: 0;
+      scrollbar-width:thin;
+      scrollbar-color:#888 #eee;
+    }
+    .palette-list::-webkit-scrollbar {
+      height: 20px; /* Extra vysoký scrollbar pro mobil */
+    }
+	.palette-list::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 6px;
+      min-height: 32px;
+    }
+    .palette-list::-webkit-scrollbar-track {
+      background: #eee;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div id="canvas">
+    <!-- Plátno s rámečkem -->
+  </div>
+  <div id="panel">
+    <h3>Postavičky</h3>
+    <div class="palette-list">
+      <!-- Postavičky jako <img src="..."> -->
+      <img src="img1.png" alt="Postava 1">
+      <img src="img2.png" alt="Postava 2">
+      <img src="img3.png" alt="Postava 3">
+      <!-- ... -->
+    </div>
+    <button id="save">Uložit pohlednici</button>
+  </div>
+</div>
+
+<script>
+  // Zabrání vyvolání nativního menu na mobilech u obrázků v paletě
+  document.querySelectorAll('.palette-list img').forEach(function(img) {
+    img.addEventListener('contextmenu', function(e) {e.preventDefault();});
+    img.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 1) e.preventDefault();
+    }, { passive: false });
+  });
+</script>
+</body>
+</html>
