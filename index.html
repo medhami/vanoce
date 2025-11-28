@@ -37,17 +37,20 @@
   /* Stage: hlavní plátno */
   #canvas {
     width: 100%;
-    /* výška vezme celou dostupnou výšku na mobilu minus paletu */
-    height: min(80vh, calc(100vh - var(--palette-height) - 48px));
+    aspect-ratio: 16/9; /* Přidá správný poměr rámečku k pozadí! */
     border: 3px solid #444;
     border-radius: 12px;
     position: relative;
     overflow: hidden;
     background-image: url("muzeum_pozadi.png");
-    background-size: contain;
+    background-size: cover; /* Lepší pokrytí rámečku obrázkem */
     background-position: center;
     background-repeat: no-repeat;
     margin: 0 auto;
+    box-sizing: border-box;
+    display:flex;
+    align-items:center;
+    justify-content:center;
   }
 
   /* Prvky které hráč vkládá */
@@ -76,13 +79,29 @@
     max-height: 74vh;
     overflow-y:auto;
     padding-right:6px;
+    scrollbar-width:thin;
+    scrollbar-color:#888 #eee;
   }
-
   .palette-list img{
     width:100%;
     border-radius:8px;
     cursor: grab;
     touch-action: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+  }
+  .palette-list::-webkit-scrollbar {
+    width: 10px;
+    height: 16px;
+    background: #eee;
+  }
+  .palette-list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 8px;
+  }
+  .palette-list::-webkit-scrollbar-track {
+    background: #eee;
   }
 
   #save{
@@ -100,217 +119,58 @@
       grid-template-columns: 1fr;
       padding-bottom: calc(var(--palette-height) + 20px);
     }
-
-    /* paleta se přesune do fixed bottom baru */
-    #panel{position:fixed;left:0;right:0;bottom:0;height:var(--palette-height);background:rgba(255,255,255,0.92);backdrop-filter: blur(6px);box-shadow:0 -6px 18px rgba(0,0,0,.12);padding:8px 10px;border-top:1px solid #e6e6e6}
-
-    .palette-list{flex-direction:row;align-items:center;overflow-x:auto;gap:12px;height:100%;max-height:none;padding:6px 6px}
-
-    .palette-list img{width:auto;height:calc(var(--palette-height) - 28px);border-radius:8px}
-
-    /* přizpůsobení plátna na mobilu - větší využitá výška */
-    #canvas{height: calc(100vh - var(--palette-height) - 20px)}
+    .palette-list {
+      flex-direction:row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-height:none;
+      height: var(--palette-height);
+      padding-bottom: 18px; /* Rezerva pro posuvník */
+      gap: var(--gap);
+      margin-bottom: 0;
+      scrollbar-width:thin;
+      scrollbar-color:#888 #eee;
+    }
+    .palette-list::-webkit-scrollbar {
+      height: 20px; /* Extra vysoký scrollbar pro mobil */
+    }
+	.palette-list::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 6px;
+      min-height: 32px;
+    }
+    .palette-list::-webkit-scrollbar-track {
+      background: #eee;
+    }
   }
-
-  /* větší obrazovky - centrované */
-  @media (min-width: 881px) {
-    .container{align-items:start}
-    #panel{position:static}
-    .palette-list{overflow-y:auto}
-  }
-
-  /* scroll bar styling (chromium) */
-  .palette-list::-webkit-scrollbar{height:10px;width:12px}
-  .palette-list::-webkit-scrollbar-thumb{background:#c9c9c9;border-radius:6px}
-
 </style>
 </head>
 <body>
-
 <div class="container">
-  <!-- Plátno -->
-  <div id="canvas" aria-label="Plátno pro koláž"></div>
-
-  <!-- Panel pro desktop; na mobilach bude přemístěn dole pomocí fixed -->
-  <div id="panel" aria-label="Paleta postav">
-    <h3>Vánoční postavy</h3>
-    <div class="palette-list" role="list">
-      <img src="Barborka.png" draggable="true" class="draggable" role="listitem" alt="Barborka">
-      <img src="Ambrož.png" draggable="true" class="draggable" role="listitem" alt="Ambrož">
-      <img src="Mikuláš.png" draggable="true" class="draggable" role="listitem" alt="Mikuláš">
-      <img src="Perchta.png" draggable="true" class="draggable" role="listitem" alt="Perchta">
-      <img src="Žber.png" draggable="true" class="draggable" role="listitem" alt="Žber">
+  <div id="canvas">
+    <!-- Plátno s rámečkem -->
+  </div>
+  <div id="panel">
+    <h3>Postavičky</h3>
+    <div class="palette-list">
+      <!-- Postavičky jako <img src="..."> -->
+      <img src="img1.png" alt="Postava 1">
+      <img src="img2.png" alt="Postava 2">
+      <img src="img3.png" alt="Postava 3">
+      <!-- ... -->
     </div>
-
-    <button id="save">📥 Stáhnout pohlednici</button>
+    <button id="save">Uložit pohlednici</button>
   </div>
 </div>
 
-<!-- Knihovny -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/interact.js/1.10.11/interact.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 <script>
-const canvas = document.getElementById('canvas');
-const panel = document.getElementById('panel');
-
-// -------------------------------
-// Desktop drag & drop (native)
-// -------------------------------
-document.querySelectorAll('.draggable').forEach(img => {
-  img.addEventListener('dragstart', e => {
-    e.dataTransfer.setData('text/plain', e.target.src);
+  // Zabrání vyvolání nativního menu na mobilech u obrázků v paletě
+  document.querySelectorAll('.palette-list img').forEach(function(img) {
+    img.addEventListener('contextmenu', function(e) {e.preventDefault();});
+    img.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 1) e.preventDefault();
+    }, { passive: false });
   });
-});
-
-canvas.addEventListener('dragover', e => e.preventDefault());
-canvas.addEventListener('drop', e => {
-  e.preventDefault();
-  const src = e.dataTransfer.getData('text/plain');
-  // use client coordinates relative to canvas
-  const rect = canvas.getBoundingClientRect();
-  placeNewItem(src, e.clientX - rect.left, e.clientY - rect.top);
-});
-
-// -------------------------------
-// Pointer-based touch support (mobile + mouse)
-// Create a floating clone on pointerdown and drop into canvas
-// -------------------------------
-(function(){
-  const active = new Map(); // pointerId => {clone, src}
-
-  function onPointerDown(e){
-    // only start on palette images
-    const target = e.target.closest('.draggable');
-    if(!target) return;
-
-    e.preventDefault();
-    target.setPointerCapture(e.pointerId);
-
-    const rect = target.getBoundingClientRect();
-    const w = Math.max(64, Math.min(140, rect.width));
-
-    const clone = document.createElement('img');
-    clone.src = target.src;
-    clone.className = 'item';
-    clone.style.position = 'fixed';
-    clone.style.width = w + 'px';
-    clone.style.left = (e.clientX - w/2) + 'px';
-    clone.style.top = (e.clientY - w/2) + 'px';
-    clone.style.pointerEvents = 'none';
-    document.body.appendChild(clone);
-
-    active.set(e.pointerId, {clone, src: target.src});
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
-  }
-
-  function onPointerMove(e){
-    const data = active.get(e.pointerId);
-    if(!data) return;
-    const {clone} = data;
-    const w = clone.getBoundingClientRect().width;
-    clone.style.left = (e.clientX - w/2) + 'px';
-    clone.style.top = (e.clientY - w/2) + 'px';
-  }
-
-  function onPointerUp(e){
-    const data = active.get(e.pointerId);
-    if(!data) return;
-
-    const {clone, src} = data;
-    const rect = canvas.getBoundingClientRect();
-    const cx = e.clientX;
-    const cy = e.clientY;
-
-    if(cx > rect.left && cx < rect.right && cy > rect.top && cy < rect.bottom){
-      // convert to canvas coordinates
-      placeNewItem(src, cx - rect.left, cy - rect.top);
-    }
-
-    clone.remove();
-    active.delete(e.pointerId);
-
-    // cleanup listeners when no active pointers
-    if(active.size === 0){
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
-    }
-  }
-
-  // attach pointerdown to panel (delegation)
-  panel.addEventListener('pointerdown', onPointerDown);
-})();
-
-// -------------------------------
-// Vložení nové postavy na plátno
-// -------------------------------
-function placeNewItem(src, x, y){
-  const el = document.createElement('img');
-  el.src = src;
-  el.className = 'item';
-  // center element at drop position
-  el.style.left = (x - 50) + 'px';
-  el.style.top = (y - 50) + 'px';
-  canvas.appendChild(el);
-  initInteractions(el);
-}
-
-// -------------------------------
-// Interact.js – pohyb + resize (pro prvky na plátně)
-// -------------------------------
-function initInteractions(el){
-  interact(el)
-    .draggable({
-      listeners: {
-        move(event){
-          const target = event.target;
-          const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-          const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-
-          target.style.transform = `translate(${x}px, ${y}px)`;
-          target.setAttribute('data-x', x);
-          target.setAttribute('data-y', y);
-        }
-      }
-    })
-    .resizable({
-      edges: { left:true, right:true, bottom:true, top:true },
-      listeners: {
-        move(event){
-          const target = event.target;
-          let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.deltaRect.left;
-          let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.deltaRect.top;
-
-          target.style.width = event.rect.width + 'px';
-          target.style.height = event.rect.height + 'px';
-
-          target.style.transform = `translate(${x}px, ${y}px)`;
-
-          target.setAttribute('data-x', x);
-          target.setAttribute('data-y', y);
-        }
-      }
-    });
-}
-
-// -------------------------------
-// Uložení pohlednice jako PNG
-// -------------------------------
-document.getElementById('save').addEventListener('click', () => {
-  html2canvas(canvas, {useCORS:true, scale: window.devicePixelRatio || 1}).then(canvasImg => {
-    const link = document.createElement('a');
-    link.download = 'vanocni_pohlednice.png';
-    link.href = canvasImg.toDataURL('image/png');
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  });
-});
 </script>
-
 </body>
 </html>
